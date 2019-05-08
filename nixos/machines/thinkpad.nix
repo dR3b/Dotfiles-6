@@ -55,7 +55,9 @@
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
-  environment.systemPackages = with pkgs; [];
+  environment.systemPackages = with pkgs; [
+    pavucontrol
+  ];
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
@@ -74,15 +76,29 @@
   # networking.firewall.enable = false;
 
   # Enable CUPS to print documents.
-  # services.printing.enable = true;
+  services.printing.enable = true;
 
   # Enable sound.
   sound.enable = true;
-  hardware.pulseaudio.enable = true;
 
-  # Enable the X11 windowing system.
-  #services.xserver.enable = true;
-  #services.xserver.layout = "us";
+  hardware.pulseaudio = {
+    enable = true;
+    # required for bluetooth package
+    package = pkgs.pulseaudioFull;
+    extraModules = [ pkgs.pulseaudio-modules-bt ];
+    #configFile = pkgs.writeText "default.pa" ''
+      #load-module module-bluetooth-policy
+      #load-module module-bluetooth-discover
+      ### module fails to load with
+      ###   module-bluez5-device.c: Failed to get device path from module arguments
+      ###   module.c: Failed to load module "module-bluez5-device" (argument: ""): initialization failed.
+      ## load-module module-bluez5-device
+      ## load-module module-bluez5-discover
+    #'';
+  };
+
+  # X11 XKB key map
+  # Mainly Caps -> Ctrl
   services.xserver.xkbOptions = "ctrl:nocaps,caps:none,shift:both_capslock,lv3:rwin_switch,grp:alt_space_toggle";
 
   # Enable touchpad support.
@@ -102,10 +118,18 @@
     speed = 110; # default kernel value is 97
   };
 
-  # Enable the KDE Desktop Environment.
-  #services.xserver.displayManager.sddm.enable = true;
-  #services.xserver.desktopManager.plasma5.enable = true;
-  #
+  # Bluetooth
+  hardware.bluetooth = {
+    enable = true;
+
+    # Modern headsets will generally try to connect
+    # using the A2DP profile
+    #extraConfig = "
+      #[General]
+      #Enable=Source,Sink,Media,Socket
+    #";
+  };
+
   # Set hosts
   # networking.hosts."128.199.58.247" = [ "planning-game.com" ];
   networking.hosts."35.244.244.204" = ["app.globalwebindex.com"];
